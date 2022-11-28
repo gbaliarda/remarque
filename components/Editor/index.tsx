@@ -1,11 +1,15 @@
 import { ChangeEvent, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+// @ts-ignore
 import SyntaxHighlighter from 'react-syntax-highlighter'
 // https://github.com/react-syntax-highlighter/react-syntax-highlighter/issues/230#issuecomment-1133934152
+// @ts-ignore
 import docco from 'react-syntax-highlighter/dist/cjs/styles/hljs/docco'
 import Textarea from 'react-textarea-autosize'
 import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 
 import 'katex/dist/katex.min.css'
 import s from "./Editor.module.scss"
@@ -16,10 +20,20 @@ const INITIAL_CONTENT = [
   "- Un bullet",
   "- Y otro mas",
   "Un poquito de codigo para cerrar",
-  '```js\n console.log("Hello world")\n db.find({ id: 1 }) \n ```',
-  "![](https://1000marcas.net/wp-content/uploads/2021/06/Redis-Logo.png)",
+  '```typescript\nconsole.log("Hello world")\ndb.find({ id: 1 })\nconst printName = (name: string) => {} \n ```',
+  "![Redis](https://1000marcas.net/wp-content/uploads/2021/06/Redis-Logo.png)",
   "The lift coefficient ($C_L$) is a dimensionless coefficient.",
-  "$$\nL = \\frac{1}{2} \\rho v^2 S C_L\n$$"
+  "$$\nL = \\frac{1}{2} \\rho v^2 S C_L\n$$",
+  `A paragraph with *emphasis* and **strong importance**.\n> A block quote with ~strikethrough~ and a URL: https://reactjs.org.\n
+  * Tareas
+  * [ ] todo
+  * [x] done\n
+  | Command | Description |
+  | ---------- | ------------ |
+  | git status | List all new or modified files |
+  | git diff   | Show file differences that haven't been staged |
+  `,
+  "[React Website](https://reactjs.org/)"
 ]
 
 export default function Editor() {
@@ -53,7 +67,7 @@ export default function Editor() {
           <ReactMarkdown
             children={block}
             key={index}
-            remarkPlugins={[remarkMath]}
+            remarkPlugins={[remarkMath, remarkGfm, remarkBreaks]}
             rehypePlugins={[rehypeKatex]}
             components={{
               code: ({ node, inline, className, children, ...props }) => {
