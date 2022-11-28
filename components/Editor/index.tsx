@@ -35,7 +35,7 @@ const INITIAL_CONTENT = [
   "[React Website](https://reactjs.org/)"
 ]
 
-export default function Editor() {
+export default function Editor({ editing }: { editing: boolean }) {
   const [content, setContent] = useState(INITIAL_CONTENT)
 
   const handleBlockInput = (e: ChangeEvent<HTMLTextAreaElement>, index: number) => {
@@ -77,20 +77,23 @@ export default function Editor() {
   }
 
   return (
-    <div className={s.container}>
-      {/* FIXME: using index as key is not recommenden, since we are constantly reordering / deleting / adding new blocks in between */}
-      <div className={s.blocks}>
-        {content.map((block, index) => (
-          <div key={index} className={s.block}>
-            <button onClick={() => addBlock(index)}>+</button>
-            <Textarea value={block} onKeyDown={(e) => handleKeyDown(e, index)} onChange={(e) => handleBlockInput(e, index)} />
-            <span className={s.lineNum}>{index}</span>
-          </div>
-        ))}
-      </div>
+    <div className={s.container} style={editing ? {} : { gridTemplateColumns: "1fr", width: "50%", marginInline: "auto" } }>
+      { editing &&
+        <div className={s.blocks}>
+          {content.map((block, index) => (
+            // FIXME: using index as key is not recommenden, since we are constantly reordering / deleting / adding new blocks in between
+            <div key={index} className={s.block}>
+              <button onClick={() => addBlock(index)}>+</button>
+              <Textarea value={block} onKeyDown={(e) => handleKeyDown(e, index)} onChange={(e) => handleBlockInput(e, index)} />
+              <span className={s.lineNum}>{index}</span>
+            </div>
+          ))}
+        </div>
+      }
 
       <div className={s.preview}>
         {content.map((block, index) => (
+          // add image captions: https://jeffchen.dev/posts/Markdown-Image-Captions/
           <ReactMarkdown
             children={block}
             key={index}

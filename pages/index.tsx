@@ -1,11 +1,10 @@
-import Editor from '../components/Editor'
 import styles from '../styles/Home.module.scss'
 
 export default function Home() {
   return (
     <div className={styles.container}>
       <main className={styles.main}>
-        <Editor />
+        <h1>My Notes</h1>
       </main>
     </div>
   )
