@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { PencilSquareIcon } from '@heroicons/react/24/outline'
-import Editor from '../components/Editor'
-import s from "../styles/Editor.module.scss"
+import Editor from '../../components/Editor'
+import s from "../../styles/Editor.module.scss"
+import { useRouter } from 'next/router'
 
 export default function EditorPage() {
+  const router = useRouter()
+  const noteId = router.query.id // TODO: use server side props with Next 13 server rendered components
   const [editing, setEditing] = useState(false)
 
   const saveNote = async () => {
-
+    // TODO: api call
   }
 
   return (

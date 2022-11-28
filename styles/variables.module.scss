@@ -1,0 +1,7 @@
+$primary-color: darken(lightblue, 15);
+$link-color: darken($primary-color, 25);
+
+// To use in jsx
+:export {
+  primaryColor: $primary-color;
+}

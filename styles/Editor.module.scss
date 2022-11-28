@@ -1,3 +1,5 @@
+@import "./variables.module.scss";
+
 .container {
   padding: 1rem;
 
@@ -30,7 +32,7 @@
         border: none;
         border-radius: 3px;
         color: #fff;
-        background: darken(lightblue, 15);
+        background: $primary-color;
         cursor: pointer;
       }
 
@@ -41,9 +43,9 @@
         height: 40px;
 
         &.notEditing {
-          color: darken(lightblue, 15);
+          color: $primary-color;
           background: none;
-          border: 1px solid darken(lightblue, 15);
+          border: 1px solid $primary-color;
         }
       }
     }
