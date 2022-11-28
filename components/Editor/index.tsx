@@ -1,4 +1,4 @@
-import { ChangeEvent, useState } from 'react'
+import { ChangeEvent, KeyboardEvent, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 // @ts-ignore
 import SyntaxHighlighter from 'react-syntax-highlighter'
@@ -18,8 +18,7 @@ const INITIAL_CONTENT = [
   "# Probando el titulo de la nota",
   "Un parrafo tranqui con `inline code`",
   "- Un bullet",
-  "- Y otro mas",
-  "Un poquito de codigo para cerrar",
+  "Un poquito de codigo",
   '```typescript\nconsole.log("Hello world")\ndb.find({ id: 1 })\nconst printName = (name: string) => {} \n ```',
   "![Redis](https://1000marcas.net/wp-content/uploads/2021/06/Redis-Logo.png)",
   "The lift coefficient ($C_L$) is a dimensionless coefficient.",
@@ -39,8 +38,6 @@ const INITIAL_CONTENT = [
 export default function Editor() {
   const [content, setContent] = useState(INITIAL_CONTENT)
 
-  // TODO: "enter" deberia crear un nuevo bloque, que en markdown es con doble enter, por lo que habria que sumar un \n manualmente
-  // podriamos hacer que "shift+enter" inserte dos espacios y un \n, que es un linebreak normal en markdown
   const handleBlockInput = (e: ChangeEvent<HTMLTextAreaElement>, index: number) => {
     setContent(oldContent => {
       const newContent = [...oldContent]
@@ -49,14 +46,44 @@ export default function Editor() {
     })
   }
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>, index: number) => {
+    // @ts-ignore
+    if (e.key === "Backspace" && e.target.value === "") {
+      removeBlock(index)
+      e.preventDefault() // prevents the "onChange" event from executing
+    } else if (e.shiftKey && e.key === "Enter") {
+      addBlock(index)
+      e.preventDefault()
+    } else if (e.shiftKey && e.key === "Backspace") {
+      removeBlock(index)
+      e.preventDefault()
+    }
+  }
+
+  const removeBlock = (index: number) => {
+    setContent(oldContent => {
+      const newContent = [...oldContent]
+      newContent.splice(index, 1)
+      return newContent
+    })
+  }
+
+  const addBlock = (index: number) => {
+    setContent(oldContent => {
+      const newContent = [...oldContent]
+      newContent.splice(index+1, 0, "")
+      return newContent
+    })
+  }
+
   return (
     <div className={s.container}>
-      {/* FIXME: using index as key won't work ok if we reorder / delete / add blocks in the middle of the array */}
+      {/* FIXME: using index as key is not recommenden, since we are constantly reordering / deleting / adding new blocks in between */}
       <div className={s.blocks}>
         {content.map((block, index) => (
           <div key={index} className={s.block}>
-            <button>+</button>
-            <Textarea value={block} onChange={(e) => handleBlockInput(e, index)} />
+            <button onClick={() => addBlock(index)}>+</button>
+            <Textarea value={block} onKeyDown={(e) => handleKeyDown(e, index)} onChange={(e) => handleBlockInput(e, index)} />
             <span className={s.lineNum}>{index}</span>
           </div>
         ))}
