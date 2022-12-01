@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { GetServerSideProps } from 'next'
-import { useRouter } from 'next/router'
 import { unstable_getServerSession } from "next-auth/next"
-import { Session } from 'next-auth'
 // @ts-ignore
 import { authOptions } from 'pages/api/auth/[...nextauth]'
 import { PencilSquareIcon } from '@heroicons/react/24/outline'
@@ -15,14 +13,13 @@ interface Props {
   id: number
   title: string
   completed: boolean
-  session: Session
+  user: string
 }
 
 export default function EditorPage(props: Props) {
-  const router = useRouter()
-  const noteId = router.query.id // TODO: use getServerSideProps() to get data
   const [editing, setEditing] = useState(false)
 
+  // TODO: use getServerSideProps() to get note data
   console.log("PROPS", props)
 
   const saveNote = async () => {
@@ -67,6 +64,6 @@ export const getServerSideProps: GetServerSideProps<{ data: Props }> = async (co
   if (!data) return { notFound: true }
 
   return {
-    props: { data, session }, // will be passed to the page component as props
+    props: { data, user: session.user!!.email }, // will be passed to the page component as props
   }
 }

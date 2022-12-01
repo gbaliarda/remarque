@@ -11,29 +11,30 @@ const NOTES = [
 export default function Home() {
   const { data: session } = useSession()
   
-  // TODO: fix login styles
   if (!session) return (
-    <>
+    <div className={s.login}>
       <p>Not signed in</p>
-      <button onClick={() => signIn()}>Sign in</button>
-    </>
+      <button className={s.button} onClick={() => signIn()}>Sign in</button>
+    </div>
   )
 
   return (
-    <main className={s.main}>
-      <p>Signed in as {session.user!!.email}</p>
-
-      <button onClick={() => fetch("/api/hello").then(res => res.json()).then(json => console.log(json))}>Hello</button>
-      
-      <button onClick={() => signOut()}>Sign out</button>
-      <h1>My Notes</h1>
-      <div className={s.notes}>
-        {NOTES.map(note => (
-          <Link key={note.id} className={s.note} href={`/notes/${note.id}`}>
-            {note.title}
-          </Link>
-        ))}
-      </div>
-    </main>
+    <>
+      <nav className={s.nav}>
+        <p>Signed in as {session.user!!.email}</p>
+        <button className={s.button} onClick={() => signOut()}>Sign out</button>
+      </nav>
+      <main className={s.main}>
+        
+        <h1>My Notes</h1>
+        <div className={s.notes}>
+          {NOTES.map(note => (
+            <Link key={note.id} passHref href={`/notes/${note.id}`}>
+              <a className={s.note}>{note.title}</a>
+            </Link>
+          ))}
+        </div>
+      </main>
+    </>
   )
 }
