@@ -1,5 +1,8 @@
 // Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
+import bcrypt from "bcrypt"
+import connectMongo from '../../utils/connectMongo'
+import User from '../../models/user'
 
 type Data = {
   name: string
@@ -16,12 +19,20 @@ type Data = {
  *       200:
  *         description: User created successfully
  */
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
-) {
-  if(req.method !== 'POST')
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
     return res.status(405).end(`Method ${req.method} not allowed`)
-  // TODO: create user and then return user as JSON
-  res.status(200).json({ name: "John Doe registered" })
+  }
+
+  await connectMongo().catch(e => res.status(500).json({ e }))
+
+  try {
+    const { email, password } = req.body
+    const hashedPassword = await bcrypt.hash(password, 12)
+    await User.create({ email, password: hashedPassword })
+    res.status(201).json({ msg: "Successfully registered user" })
+  } catch (e) {
+    console.log(e)
+    res.status(400).json({ e })
+  }
 }

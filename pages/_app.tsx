@@ -9,6 +9,7 @@ import { useRouter } from 'next/router'
 import DOMPurify from 'isomorphic-dompurify'
 // @ts-ignore
 import debounce from "lodash.debounce"
+import { SessionProvider } from "next-auth/react"
 
 const hits = [
   {
@@ -34,7 +35,7 @@ const hits = [
   },
 ]
 
-export default function App({ Component, pageProps }: AppProps) {
+export default function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
@@ -81,6 +82,8 @@ export default function App({ Component, pageProps }: AppProps) {
       </CommandPalette.List>
     </CommandPalette>
 
-    <Component {...pageProps} />
+    <SessionProvider session={session}>
+      <Component {...pageProps} />
+    </SessionProvider>
   </>
 }
