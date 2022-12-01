@@ -1,8 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-
-type Data = {
-  name: string
-}
+import Note from '../../../models/note';
+import User from '../../../models/user';
+import connectMongo from '../../../utils/connectMongo';
 
 /**
  * @swagger
@@ -36,19 +35,45 @@ type Data = {
  *       200:
  *         description: User deleted successfully
  */
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
-) {
-	switch(req.method) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { id } = req.query
+  
+  switch(req.method) {
 		case 'GET':
-			// TODO: Retrieve user
+			await connectMongo().catch(e => res.status(500).json({ e }))
+			
+			try {
+				await User.findById(id).then(user => {
+					if(user !== null) 
+						res.status(200).json({email: user.email, notes: user.notes})
+					else 
+            res.status(404).end(`User not found`)
+				})
+      } catch (e) {
+				console.log(e)
+        res.status(404).end(`User not found`)
+      }
 			break;
 		case 'DELETE':
-			// TODO: Delete user
+			await connectMongo().catch(e => res.status(500).json({ e }))
+			
+      try {
+				await User.findById(id).then(user => {
+					if(user == null)  
+						return res.status(404).end(`User not found`)
+          Note.deleteMany({ owner: user.email }, err => {
+            if (err)
+              res.send(err)
+          })
+          user.remove()
+          res.status(200).end(`User deleted`)
+				})
+      } catch (e) {
+				console.log(e)
+        res.status(404).end(`User not found`)
+      }
 			break;
 		default:
 			return res.status(405).end(`Method ${req.method} not allowed`)
 	}
-  res.status(200).json({ name: 'John Doe' })
 }

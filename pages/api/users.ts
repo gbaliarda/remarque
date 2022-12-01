@@ -1,12 +1,7 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type { NextApiRequest, NextApiResponse } from 'next'
 import bcrypt from "bcrypt"
 import connectMongo from '../../utils/connectMongo'
 import User from '../../models/user'
-
-type Data = {
-  name: string
-}
 
 /**
  * @swagger
