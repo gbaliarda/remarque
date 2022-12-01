@@ -5,7 +5,7 @@ import { unstable_getServerSession } from "next-auth/next"
 import { parseAuthBasic } from './auth/[...nextauth]'
 
 type Data = {
-  message: string
+  msg: string
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<Data>) {
@@ -16,9 +16,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     // try to authenticate with Authorization (Basic) header
     const user = await parseAuthBasic(req)
     if (!user) {
-      return res.status(401).json({ message: "You must be logged in." })
+      return res.status(401).json({ msg: "You must be logged in." })
     }
   }
 
-  res.status(200).json({ message: 'John Doe' })
+  res.status(200).json({ msg: 'John Doe' })
 }

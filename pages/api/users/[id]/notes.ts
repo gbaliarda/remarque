@@ -3,6 +3,9 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../../../models/note'
 import User from '../../../../models/user'
 import connectMongo from '../../../../utils/connectMongo'
+import { authOptions } from '../../auth/[...nextauth]'
+import { unstable_getServerSession } from "next-auth/next"
+import { parseAuthBasic } from '../../auth/[...nextauth]'
 
 /**
  * @swagger
@@ -32,22 +35,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if(req.method !== 'GET')
     return res.status(405).end(`Method ${req.method} not allowed`)
 
-  await connectMongo().catch(e => res.status(500).json({ e }))
-  try {
-    const { id, phrase } = req.query 
+  const session = await unstable_getServerSession(req, res, authOptions)
 
-    await User.findById(id).then(user => {
-      if(user == null)  
-        return res.status(404).end(`User not found`)
+  // try to authenticate with next-auth session
+  if (!session) {
+    // try to authenticate with Authorization (Basic) header
+    const sessionUser = await parseAuthBasic(req)
+    if (!sessionUser) {
+      return res.status(401).json({ msg: "You must be logged in." })
+    }
 
-      Note.find({ owner: user.email }).then(result =>
-        res.status(200).json(result)
-      ).catch(err => 
-        res.status(500).end(err)
-      )
-    })
-  } catch (e) {
-    console.log(e)
-    res.status(404).end(`User not found`)
+    await connectMongo().catch(e => res.status(500).json({ e }))
+  
+    try {
+      const { id, phrase } = req.query 
+  
+      await User.findById(id).then(user => {
+        if(user == null)  
+          return res.status(404).json({ msg: `User not found` })
+  
+        Note.find({ owner: user.email }).then(result =>
+          res.status(200).json({notes: result})
+        ).catch(err => 
+          res.status(500).json({ msg: err })
+        )
+      })
+    } catch (e) {
+      console.log(e)
+      res.status(400).json({ msg: e })
+    }
   }
 }

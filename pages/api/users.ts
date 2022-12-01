@@ -28,6 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(201).json({ msg: "Successfully registered user" })
   } catch (e) {
     console.log(e)
-    res.status(400).json({ e })
+    res.status(400).json({ msg: e })
   }
 }
