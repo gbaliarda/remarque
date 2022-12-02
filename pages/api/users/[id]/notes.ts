@@ -50,15 +50,55 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const { id, phrase } = req.query 
   
-      await User.findById(id).then(user => {
-        if(user == null)  
+      await User.findById(id).then(async user => {
+        
+        if(user == null) {
+          console.log(user)
           return res.status(404).json({ msg: `User not found` })
-  
-        Note.find({ owner: user.email }).then(result =>
-          res.status(200).json({notes: result})
-        ).catch(err => 
-          res.status(500).json({ msg: err })
-        )
+        }
+
+        if(phrase == null) {
+          await Note.find({ owner: user.email }).then(result =>
+            res.status(200).json({notes: result})
+          ).catch(err => 
+            res.status(500).json({ msg: err })
+          )
+        }
+        //@ts-ignore
+        const query = {
+          query: {
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query: phrase,
+                    fields: [
+                     "title^2",
+                     "content"
+                    ],
+                    type: "phrase"
+                  }
+                },
+                {
+                  match_phrase: {
+                    owner: user.email
+                  }
+                }
+              ]
+            }
+          }
+        }
+
+        //Query via mongoosastic to elasticsearch
+        //@ts-ignore
+        try {
+          //@ts-ignore
+          const queryResult = await Note.esSearch(query)
+          res.status(200).json({msg: queryResult})
+        } catch (error) {
+          res.status(500).json({ msg: error })
+        }
+
       })
     } catch (e) {
       console.log(e)
