@@ -1,13 +1,18 @@
+import { CallbackError } from 'mongoose'
 import type { NextApiRequest, NextApiResponse } from 'next'
-
-type Data = {
-  name: string
-}
+import Note from '../../../../models/note'
+import User from '../../../../models/user'
+import connectMongo from '../../../../utils/connectMongo'
+import { authOptions } from '../../auth/[...nextauth]'
+import { unstable_getServerSession } from "next-auth/next"
+import { parseAuthBasic } from '../../auth/[...nextauth]'
 
 /**
  * @swagger
  * /api/users/{id}/notes:
  *   get:
+ *     security:
+ *       - basicAuth: []
  *     description: Retrieves an array of notes that might or not be filtered
  *     tags:
  *       - Users
@@ -16,7 +21,7 @@ type Data = {
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of user to fetch
  *       - name: phrase
  *         in: query
@@ -27,12 +32,93 @@ type Data = {
  *     responses:
  *       200:
  *         description: An array of notes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Note'
+ *       401:
+ *         description: You must be logged in
+ *       404:
+ *         description: User not found
  */
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
-) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if(req.method !== 'GET')
     return res.status(405).end(`Method ${req.method} not allowed`)
-  res.status(200).json({ name: 'John Doe' })
+
+  const session = await unstable_getServerSession(req, res, authOptions)
+  
+  if (!session) {
+    const sessionUser = await parseAuthBasic(req)
+    if (!sessionUser) {
+      return res.status(401).json({ msg: "You must be logged in." })
+    }
+
+    await connectMongo().catch(e => res.status(500).json({ e }))
+  
+    try {
+      const { id, phrase } = req.query 
+  
+      await User.findById(id).then(async user => {
+        
+        if(user == null) {
+          console.log(user)
+          return res.status(404).json({ msg: `User not found` })
+        }
+
+        if(phrase == null) {
+          await Note.find({ owner: user.email }).then(result =>
+            res.status(200).json({notes: result})
+          ).catch(err => 
+            res.status(500).json({ msg: err })
+          )
+        }
+        
+        const query = {
+          query: {
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query: phrase,
+                    fields: [
+                     "title^2",
+                     "content"
+                    ],
+                    type: "phrase"
+                  }
+                },
+                {
+                  match_phrase: {
+                    owner: user.email
+                  }
+                }
+              ]
+            }
+          },
+          highlight: {
+            fields: {
+              "title": {},
+              "content":{}
+            }
+          }
+        }
+
+        //Query via mongoosastic to elasticsearch
+        
+        try {
+          //@ts-ignore
+          const queryResult = await Note.esSearch(query)
+          res.status(200).json({msg: queryResult})
+        } catch (error) {
+          res.status(500).json({ msg: error })
+        }
+
+      })
+    } catch (e) {
+      console.log(e)
+      res.status(400).json({ msg: e })
+    }
+  }
 }

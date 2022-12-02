@@ -1,13 +1,18 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-
-type Data = {
-  name: string
-}
+import Note from '../../../models/note';
+import connectMongo from '../../../utils/connectMongo';
+import { authOptions } from '../auth/[...nextauth]'
+import { unstable_getServerSession } from "next-auth/next"
+import { parseAuthBasic } from '../auth/[...nextauth]'
+import User from '../../../models/user';
+import { isObjectIdOrHexString, ObjectId } from 'mongoose';
 
 /**
  * @swagger
  * /api/notes/{id}:
  *   get:
+ *     security:
+ *       - basicAuth: []
  *     description: Retrieves a note as JSON
  *     tags:
  *       - Notes
@@ -16,12 +21,26 @@ type Data = {
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to fetch
  *     responses:
  *       200:
  *         description: A single note
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  *   post:
+ *     security:
+ *       - basicAuth: []
  *     description: Duplicates a note
  *     tags:
  *       - Notes
@@ -30,12 +49,50 @@ type Data = {
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to duplicate
  *     responses:
- *       200:
+ *       201:
  *         description: Note duplicated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  *   patch:
+ *     security:
+ *       - basicAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Note's title
+ *                 example: Remarque
+ *                 required: true
+ *               content:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Note's content
+ *                 required: true
+ *                 example: ["# Hello", "Note description"]
+ *               isPublic:
+ *                 type: boolean
+ *                 description: Define whether the note can be duplicated or not
+ *                 required: false
+ *                 example: false
  *     description: Edits a note
  *     tags:
  *       - Notes
@@ -44,12 +101,26 @@ type Data = {
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to edit
  *     responses:
  *       200:
  *         description: Note edited successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  *   delete:
+ *     security:
+ *       - basicAuth: []
  *     description: Deletes a note
  *     tags:
  *       - Notes
@@ -58,31 +129,124 @@ type Data = {
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to delete
  *     responses:
  *       200:
  *         description: Note deleted successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  */
-export default function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<Data>
-) {
-  switch(req.method) {
-    case 'GET':
-      // TODO: Retrieve note
-      break;
-    case 'POST':
-      // TODO: Duplicates note
-      break;
-    case 'PATCH':
-      // TODO: Update note
-      break;
-    case 'DELETE':
-      // TODO: Delete note
-      break;
-    default:
-      return res.status(405).end(`Method ${req.method} not allowed`)
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await connectMongo().catch(e => res.status(500).json({ e }))
+  const { id } = req.query
+
+  const session = await unstable_getServerSession(req, res, authOptions)
+
+  if (!session) {
+    const sessionUser = await parseAuthBasic(req)
+    if (!sessionUser) {
+      return res.status(401).json({ message: "You must be logged in." })
+    }
+
+    switch(req.method) {
+      case 'GET':
+        try {
+          await Note.findById(id).then(note => {
+            if(note == null)
+              return res.status(404).json({ msg: `Note not found` })
+            
+            if(!note.isPublic && note.owner !== sessionUser.email)
+              return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
+  
+            res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+          })
+        } catch (e) {
+          console.log(e)
+          res.status(400).json({ msg: `Bad request`, description: e})
+        }
+        break;
+      case 'POST':
+        try {
+          await Note.findById(id).then(note => {
+            if(note == null)
+              return res.status(404).json({ msg: `Note not found` })
+  
+            if(!note.isPublic && note.owner !== sessionUser.email)
+              return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
+
+            Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
+              sessionUser.notes = [...sessionUser.notes, note._id]
+              sessionUser.markModified('notes')
+              sessionUser.save()
+              res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+            })
+          })
+        } catch (e) {
+          console.log(e)
+          res.status(400).json({ msg: `Bad request`, description: e})
+        }
+        break;
+      case 'PATCH':
+        try {
+          const {title, content, isPublic} = req.body
+          await Note.findById(id).then(note => {
+            if(note == null)
+              return res.status(404).json({ msg: `Note not found` })
+  
+            if(note.owner !== sessionUser.email)
+              return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+
+            if(title) {
+              note.title = title
+              note.markModified('title')
+            }
+            if(content) {
+              note.content = content
+              note.markModified('content')
+            }
+            if(isPublic) {
+              note.isPublic = isPublic
+              note.markModified('isPublic')
+            }
+            note.save()
+            res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+          })
+        } catch (e) {
+          console.log(e)
+          res.status(400).json({ msg: `Bad request`, description: e})
+        }
+        break;
+      case 'DELETE':
+        try {
+          await Note.findById(id).then(note => {
+            if(note == null)
+              return res.status(404).json({ msg: `Note not found` })
+  
+            if(note.owner !== sessionUser.email)
+              return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+
+            User.findOne({email: note.owner}).then(user => {
+              user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))
+              user.markModified("notes")
+              user.save()
+            })
+            note.remove()
+            res.status(200).json({ msg: `Note deleted successfully`})
+          })
+        } catch (e) {
+          console.log(e)
+          res.status(400).json({ msg: `Bad request`, description: e})
+        }
+        break;
+      default:
+        return res.status(405).json({ msg: `Method ${req.method} not allowed`})
+    }
   }
-  res.status(200).json({ name: 'John Doe' })
 }

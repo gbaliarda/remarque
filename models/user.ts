@@ -1,4 +1,4 @@
-import { Schema, model, models } from 'mongoose'
+import { Schema, model, models, ObjectId, Document} from 'mongoose'
 
 const userSchema = new Schema({
   email: {
@@ -9,6 +9,9 @@ const userSchema = new Schema({
   password: {
     type: String,
     required: true,
+  },
+  notes: {
+    type: Array<ObjectId>,
   }
 })
 
