@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const { title, content, isPublic } = req.body
-      Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
+      await Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
         sessionUser.notes = [...sessionUser.notes, note._id]
         sessionUser.markModified('notes')
         sessionUser.save()
