@@ -215,6 +215,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               note.isPublic = isPublic
               note.markModified('isPublic')
             }
+            note.lastModified = Date.now
+            note.markModified('lastModified')
             note.save()
             res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
           })
