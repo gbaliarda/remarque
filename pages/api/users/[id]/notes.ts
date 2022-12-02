@@ -64,7 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             res.status(500).json({ msg: err })
           )
         }
-        //@ts-ignore
+        
         const query = {
           query: {
             bool: {
@@ -90,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         //Query via mongoosastic to elasticsearch
-        //@ts-ignore
+        
         try {
           //@ts-ignore
           const queryResult = await Note.esSearch(query)
