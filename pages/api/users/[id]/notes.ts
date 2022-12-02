@@ -86,6 +86,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
               ]
             }
+          },
+          highlight: {
+            fields: {
+              "title": {},
+              "content":{}
+            }
           }
         }
 
