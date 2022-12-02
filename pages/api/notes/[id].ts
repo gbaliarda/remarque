@@ -5,7 +5,7 @@ import { authOptions } from '../auth/[...nextauth]'
 import { unstable_getServerSession } from "next-auth/next"
 import { parseAuthBasic } from '../auth/[...nextauth]'
 import User from '../../../models/user';
-import { isObjectIdOrHexString, ObjectId } from 'mongoose';
+import { ObjectId } from 'mongoose';
 
 /**
  * @swagger

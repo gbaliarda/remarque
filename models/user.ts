@@ -1,4 +1,4 @@
-import { Schema, model, models, ObjectId, Document} from 'mongoose'
+import { Schema, model, models, ObjectId} from 'mongoose'
 
 const userSchema = new Schema({
   email: {

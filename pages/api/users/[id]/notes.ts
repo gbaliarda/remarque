@@ -1,4 +1,3 @@
-import { CallbackError } from 'mongoose'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../../../models/note'
 import User from '../../../../models/user'
@@ -48,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end(`Method ${req.method} not allowed`)
 
   const session = await unstable_getServerSession(req, res, authOptions)
-  
+
   if (!session) {
     const sessionUser = await parseAuthBasic(req)
     if (!sessionUser) {

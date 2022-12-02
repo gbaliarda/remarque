@@ -1,6 +1,5 @@
 import { mongoosastic } from 'mongoosastic-ts';
-import { MongoosasticDocument, MongoosasticModel, MongoosasticPluginOpts } from 'mongoosastic-ts/dist/types';
-import { Schema, model, models, Document } from 'mongoose'
+import { Schema, model, models } from 'mongoose'
 
 
 const noteSchema = new Schema({
