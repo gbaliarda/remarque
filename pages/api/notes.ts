@@ -9,12 +9,46 @@ import { parseAuthBasic } from './auth/[...nextauth]'
  * @swagger
  * /api/notes:
  *   post:
+ *     security:
+ *       - basicAuth: []
  *     description: Creates a new note
  *     tags:
  *       - Notes
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Note's title
+ *                 example: Remarque
+ *                 required: true
+ *               content:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Note's content
+ *                 required: true
+ *                 example: ["# Hello", "Note description"]
+ *               isPublic:
+ *                 type: boolean
+ *                 description: Define whether the note can be duplicated or not
+ *                 required: false
+ *                 example: false
  *     responses:
- *       200:
+ *       201:
  *         description: Note created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       401:
+ *         description: You must be logged in
+ *       400:
+ *         description: Bad request, title and content are required
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if(req.method !== 'POST')
@@ -31,16 +65,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await connectMongo().catch(e => res.status(500).json({ e }))
 
     try {
-      const { title, content, isPublic } = req.body
+      let { title, content, isPublic } = req.body
+      if(isPublic == undefined)
+        isPublic = false
       await Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
         sessionUser.notes = [...sessionUser.notes, note._id]
         sessionUser.markModified('notes')
         sessionUser.save()
+        res.status(201).json({ _id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified })
       })
-      res.status(201).json({ msg: "Successfully note created" })
     } catch (e) {
       console.log(e)
-      res.status(400).json({ msg: e })
+      res.status(400).json({ msg: "Note could not be created, both title and content are required " , description: e })
     }
   }
 }

@@ -19,7 +19,64 @@ export const getStaticProps: GetStaticProps = async () => {
         title: 'Remarque API',
         version: '1.0',
       },
-    },
+      components: {
+        securitySchemes: {
+          basicAuth: {
+            type: "http",
+            scheme: "basic"
+          }
+        },
+        schemas: {
+          ObjectId: {
+            type: "string"
+          },
+          User: {
+            type: "object",
+            properties: {
+              _id: {
+                $ref: "#/components/schemas/ObjectId"
+              },
+              email: {
+                type: "string"
+              },
+              notes: {
+                type: "array",
+                items: {
+                  $ref: "#/components/schemas/ObjectId"
+                }
+              }
+            }
+          },
+          Note: {
+            type: "object",
+            properties: {
+              _id: {
+                $ref: "#/components/schemas/ObjectId"
+              },
+              owner: {
+                type: "string"
+              },
+              title: {
+                type: "string"
+              },
+              content: {
+                type: "array",
+                items: {
+                  type: "string"
+                } 
+              },
+              isPublic: {
+                type: "boolean"
+              },
+              lastModified: {
+                type: "string",
+                format: "date"
+              }
+            }
+          }
+        }
+      }
+    }
   });
 
   return {

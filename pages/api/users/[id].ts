@@ -10,6 +10,8 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  * @swagger
  * /api/users/{id}:
  *   get:
+ *     security:
+ *       - basicAuth: []
  *     description: Retrieves a user as JSON
  *     tags:
  *       - Users
@@ -18,12 +20,22 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of user to fetch
  *     responses:
  *       200:
  *         description: A single user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       401:
+ *         description: You must be logged in
+ *       404:
+ *         description: User not found
  *   delete:
+ *     security:
+ *       - basicAuth: []
  *     description: Deletes a user
  *     tags:
  *       - Users
@@ -32,11 +44,15 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of user to delete
  *     responses:
  *       200:
  *         description: User deleted successfully
+ *       401:
+ *         description: You must be logged in
+ *       400:
+ *         description: User not found
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query
@@ -56,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
           await User.findById(id).then(user => {
             if(user !== null) 
-              res.status(200).json({ email: user.email, notes: user.notes })
+              res.status(200).json({ _id: user._id, email: user.email, notes: user.notes })
             else 
               res.status(404).json({ msg:`User not found` })
           })

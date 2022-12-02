@@ -4,11 +4,15 @@ import connectMongo from '../../../utils/connectMongo';
 import { authOptions } from '../auth/[...nextauth]'
 import { unstable_getServerSession } from "next-auth/next"
 import { parseAuthBasic } from '../auth/[...nextauth]'
+import User from '../../../models/user';
+import { isObjectIdOrHexString, ObjectId } from 'mongoose';
 
 /**
  * @swagger
  * /api/notes/{id}:
  *   get:
+ *     security:
+ *       - basicAuth: []
  *     description: Retrieves a note as JSON
  *     tags:
  *       - Notes
@@ -17,12 +21,26 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to fetch
  *     responses:
  *       200:
  *         description: A single note
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  *   post:
+ *     security:
+ *       - basicAuth: []
  *     description: Duplicates a note
  *     tags:
  *       - Notes
@@ -31,12 +49,50 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to duplicate
  *     responses:
- *       200:
+ *       201:
  *         description: Note duplicated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  *   patch:
+ *     security:
+ *       - basicAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Note's title
+ *                 example: Remarque
+ *                 required: true
+ *               content:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Note's content
+ *                 required: true
+ *                 example: ["# Hello", "Note description"]
+ *               isPublic:
+ *                 type: boolean
+ *                 description: Define whether the note can be duplicated or not
+ *                 required: false
+ *                 example: false
  *     description: Edits a note
  *     tags:
  *       - Notes
@@ -45,12 +101,26 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to edit
  *     responses:
  *       200:
  *         description: Note edited successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Note'
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  *   delete:
+ *     security:
+ *       - basicAuth: []
  *     description: Deletes a note
  *     tags:
  *       - Notes
@@ -59,11 +129,19 @@ import { parseAuthBasic } from '../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of note to delete
  *     responses:
  *       200:
  *         description: Note deleted successfully
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: You must be logged in
+ *       403:
+ *         description: You can not access this note
+ *       404:
+ *         description: Note not found
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await connectMongo().catch(e => res.status(500).json({ e }))
@@ -82,53 +160,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
           await Note.findById(id).then(note => {
             if(note == null)
-              return res.status(404).end(`Note not found`)
+              return res.status(404).json({ msg: `Note not found` })
             
             if(!note.isPublic && note.owner !== sessionUser.email)
-              return res.status(403).end(`Note is not public for ${sessionUser.email}`)
+              return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
   
-            res.status(200).json({owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+            res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
           })
         } catch (e) {
           console.log(e)
-          res.status(404).end(`Note not found`)
+          res.status(400).json({ msg: `Bad request`, description: e})
         }
         break;
       case 'POST':
         try {
           await Note.findById(id).then(note => {
             if(note == null)
-              return res.status(404).end(`Note not found`)
+              return res.status(404).json({ msg: `Note not found` })
   
             if(!note.isPublic && note.owner !== sessionUser.email)
-              return res.status(403).end(`Note is not public for ${sessionUser.email}`)
+              return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
 
             Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
               sessionUser.notes = [...sessionUser.notes, note._id]
               sessionUser.markModified('notes')
               sessionUser.save()
+              res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
             })
-            res.status(201).json({ msg: `Note duplicated successfully`})
           })
         } catch (e) {
           console.log(e)
-          res.status(404).end(`Note not found`)
+          res.status(400).json({ msg: `Bad request`, description: e})
         }
         break;
       case 'PATCH':
         try {
-          const {owner, title, content, isPublic} = req.body
+          const {title, content, isPublic} = req.body
           await Note.findById(id).then(note => {
             if(note == null)
-              return res.status(404).end(`Note not found`)
+              return res.status(404).json({ msg: `Note not found` })
   
             if(note.owner !== sessionUser.email)
-              return res.status(403).end(`Note is not owned by ${sessionUser.email}`)
+              return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
 
-            if(owner) {
-              note.owner = owner
-              note.markModified('owner')
-            }
             if(title) {
               note.title = title
               note.markModified('title')
@@ -142,32 +216,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               note.markModified('isPublic')
             }
             note.save()
-            res.status(201).json({ msg: `Note updated successfully`})
+            res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
           })
         } catch (e) {
           console.log(e)
-          res.status(404).end(`Note not found`)
+          res.status(400).json({ msg: `Bad request`, description: e})
         }
         break;
       case 'DELETE':
         try {
           await Note.findById(id).then(note => {
             if(note == null)
-              return res.status(404).end(`Note not found`)
+              return res.status(404).json({ msg: `Note not found` })
   
             if(note.owner !== sessionUser.email)
-              return res.status(403).end(`Note is not owned by ${sessionUser.email}`)
+              return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
 
+            User.findOne({email: note.owner}).then(user => {
+              user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))
+              user.markModified("notes")
+              user.save()
+            })
             note.remove()
             res.status(200).json({ msg: `Note deleted successfully`})
           })
         } catch (e) {
           console.log(e)
-          res.status(404).end(`Note not found`)
+          res.status(400).json({ msg: `Bad request`, description: e})
         }
         break;
       default:
-        return res.status(405).end(`Method ${req.method} not allowed`)
+        return res.status(405).json({ msg: `Method ${req.method} not allowed`})
     }
   }
 }

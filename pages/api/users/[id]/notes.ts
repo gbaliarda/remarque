@@ -11,6 +11,8 @@ import { parseAuthBasic } from '../../auth/[...nextauth]'
  * @swagger
  * /api/users/{id}/notes:
  *   get:
+ *     security:
+ *       - basicAuth: []
  *     description: Retrieves an array of notes that might or not be filtered
  *     tags:
  *       - Users
@@ -19,7 +21,7 @@ import { parseAuthBasic } from '../../auth/[...nextauth]'
  *         in: path
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID of user to fetch
  *       - name: phrase
  *         in: query
@@ -30,16 +32,24 @@ import { parseAuthBasic } from '../../auth/[...nextauth]'
  *     responses:
  *       200:
  *         description: An array of notes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Note'
+ *       401:
+ *         description: You must be logged in
+ *       404:
+ *         description: User not found
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if(req.method !== 'GET')
     return res.status(405).end(`Method ${req.method} not allowed`)
 
   const session = await unstable_getServerSession(req, res, authOptions)
-
-  // try to authenticate with next-auth session
+  
   if (!session) {
-    // try to authenticate with Authorization (Basic) header
     const sessionUser = await parseAuthBasic(req)
     if (!sessionUser) {
       return res.status(401).json({ msg: "You must be logged in." })

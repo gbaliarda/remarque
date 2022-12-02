@@ -10,9 +10,33 @@ import User from '../../models/user'
  *     description: Creates a new user
  *     tags:
  *       - Users
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: User's email
+ *                 example: user@gmail.com
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: User's password
+ *                 example: password
  *     responses:
- *       200:
+ *       201:
  *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Bad request. Check email and password parameters
+ *       409:
+ *         description: Conflict. Email might already exist
  *   get:
  *     description: Retrieves user information using email
  *     tags:
@@ -20,6 +44,12 @@ import User from '../../models/user'
  *     responses:
  *       200:
  *         description: A single user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/User'
+ *       400:
+ *         description: Bad request. Check email parameter
  *     parameters: 
  *       - name: email
  *         in: query
@@ -46,10 +76,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { email, password } = req.body
         const hashedPassword = await bcrypt.hash(password, 12)
         await User.create({ email, password: hashedPassword })
-        res.status(201).json({ msg: "Successfully registered user" })
+                .then((user) => res.status(201).json({ _id: user._id, email: user.email, notes: user.notes}))
+                .catch(() => res.status(409).json({ msg: "User already exists or has invalid email or password" }))
       } catch (e) {
-        console.log(e)
-        res.status(400).json({ msg: e })
+        res.status(400).json({ msg: "User could not be created, both email and password are required and have to be valid", error: e })
       }
       break
     default:
