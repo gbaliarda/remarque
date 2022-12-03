@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../../../models/note'
 import User from '../../../../models/user'
 import connectMongo from '../../../../utils/connectMongo'
-import { getSessionUser } from '../../../../utils/getSessionUser'
+import { getSessionEmail } from '../../../../utils/getSessionEmail'
 
 /**
  * @swagger
@@ -63,8 +63,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if(req.method !== 'GET')
     return res.status(405).end(`Method ${req.method} not allowed`)
 
-  const sessionUser = await getSessionUser(req, res)
-  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
+  const sessionEmail = await getSessionEmail(req, res)
+  if(!sessionEmail) return res.status(401).json({ message: "You must be logged in." })
 
   try {
     await connectMongo()

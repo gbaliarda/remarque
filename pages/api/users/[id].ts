@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../../models/note';
 import User from '../../../models/user';
 import connectMongo from '../../../utils/connectMongo';
-import { getSessionUser } from '../../../utils/getSessionUser';
+import { getSessionEmail } from '../../../utils/getSessionEmail';
 
 /**
  * @swagger
@@ -55,8 +55,8 @@ import { getSessionUser } from '../../../utils/getSessionUser';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query
 
-  const sessionUser = await getSessionUser(req, res)
-  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
+  const sessionEmail = await getSessionEmail(req, res)
+  if(!sessionEmail) return res.status(401).json({ message: "You must be logged in." })
 
   switch(req.method) {
     case 'GET':
@@ -86,11 +86,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
       
       try {
-        await Note.deleteMany({ owner: sessionUser.email }, err => {
+        await Note.deleteMany({ owner: sessionEmail }, err => {
           if (err)
             return res.status(500).json({ msg: err })
         })
-        sessionUser.remove()
+        await User.deleteOne({email: sessionEmail})
         res.status(200).json({ msg: `User deleted` })
       } catch (e) {
         console.log(e)

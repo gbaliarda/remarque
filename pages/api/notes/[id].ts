@@ -3,7 +3,7 @@ import Note from '../../../models/note';
 import connectMongo from '../../../utils/connectMongo';
 import User from '../../../models/user';
 import { ObjectId } from 'mongoose';
-import { getSessionUser } from '../../../utils/getSessionUser';
+import { getSessionEmail } from '../../../utils/getSessionEmail';
 
 /**
  * @swagger
@@ -149,8 +149,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const { id } = req.query
 
-  const sessionUser = await getSessionUser(req, res)
-  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
+  const sessionEmail = await getSessionEmail(req, res)
+  if(!sessionEmail) return res.status(401).json({ message: "You must be logged in." })
 
   switch(req.method) {
     case 'GET':
@@ -159,8 +159,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if(note == null)
             return res.status(404).json({ msg: `Note not found` })
           
-          if(!note.isPublic && note.owner !== sessionUser.email)
-            return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
+          if(!note.isPublic && note.owner !== sessionEmail)
+            return res.status(403).json({ msg: `Note is not public for ${sessionEmail}`})
 
           res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
         })
@@ -175,14 +175,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if(note == null)
             return res.status(404).json({ msg: `Note not found` })
 
-          if(!note.isPublic && note.owner !== sessionUser.email)
-            return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
+          if(!note.isPublic && note.owner !== sessionEmail)
+            return res.status(403).json({ msg: `Note is not public for ${sessionEmail}`})
 
-          await Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
-            sessionUser.notes = [...sessionUser.notes, note._id]
-            sessionUser.markModified('notes')
-            sessionUser.save()
-            res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+          await User.findOne({email: sessionEmail}).then(async user => {
+            await Note.create({owner: user.email, title: note.title, content: note.content}).then((note) => {
+              user.notes = [...user.notes, note._id]
+              user.markModified('notes')
+              user.save()
+              res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+            })
           })
         })
       } catch (e) {
@@ -197,8 +199,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if(note == null)
             return res.status(404).json({ msg: `Note not found` })
 
-          if(note.owner !== sessionUser.email)
-            return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+          if(note.owner !== sessionEmail)
+            return res.status(403).json({ msg: `Note is not owned by ${sessionEmail}`})
 
           if(title) {
             note.title = title
@@ -228,8 +230,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if(note == null)
             return res.status(404).json({ msg: `Note not found` })
 
-          if(note.owner !== sessionUser.email)
-            return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+          if(note.owner !== sessionEmail)
+            return res.status(403).json({ msg: `Note is not owned by ${sessionEmail}`})
 
           await User.findOne({email: note.owner}).then(user => {
             user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))

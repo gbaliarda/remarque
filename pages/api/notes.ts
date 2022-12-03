@@ -1,7 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../models/note'
+import User from '../../models/user'
 import connectMongo from '../../utils/connectMongo'
-import { getSessionUser } from '../../utils/getSessionUser'
+import { getSessionEmail } from '../../utils/getSessionEmail'
 
 /**
  * @swagger
@@ -52,8 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if(req.method !== 'POST')
     return res.status(405).end(`Method ${req.method} not allowed`)
 
-  const sessionUser = await getSessionUser(req, res)
-  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
+  const sessionEmail = await getSessionEmail(req, res)
+  if(!sessionEmail) return res.status(401).json({ message: "You must be logged in." })
 
   try {
     await connectMongo()
@@ -64,11 +65,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { title = "Untitled", content = [], isPublic = false } = req.body
 
-    await Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
-      sessionUser.notes = [...sessionUser.notes, note._id]
-      sessionUser.markModified('notes')
-      sessionUser.save()
-      res.status(201).json({ _id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified })
+    await User.findOne({email: sessionEmail}).then(async user => {
+      await Note.create({owner: user.email, title, content, isPublic}).then((note) => {
+        user.notes = [...user.notes, note._id]
+        user.markModified('notes')
+        user.save()
+        return res.status(201).json({ _id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified })
+      })
     })
   } catch (e) {
     console.log(e)
