@@ -5,13 +5,13 @@ const checkStatus = async (res: Response) => {
   return res
 }
 
-export const apiFetcher = (resource: string, options: RequestInit) =>
+export const apiFetcher = <T>(resource: string, options: RequestInit = {}) =>
   fetch(apiEndpoint + resource, options)
     .then(checkStatus)
-    .then(res => res.json())
+    .then(res => res.json() as Promise<T>)
 
-export const postJsonApi = (resource: string, body: Object) =>
-  apiFetcher(resource, {
+export const postJsonApi = <T>(resource: string, body: Object) =>
+  apiFetcher<T>(resource, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
