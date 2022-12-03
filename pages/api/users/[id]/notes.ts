@@ -90,13 +90,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if(lastModified == undefined) {
           if(limitToNumber == 0) {
             await Note.find({ owner: user.email }).then(result =>
-              res.status(200).json({notes: result})
+              res.status(200).send(result)
             ).catch(err => 
               res.status(400).json({ msg: err })
             )
           } else {
             await Note.find({ owner: user.email }).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
-              res.status(200).json({notes: result})
+              res.status(200).send(result)
             ).catch(err => 
               res.status(400).json({ msg: err })
             )
@@ -108,13 +108,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
             if(limitToNumber == 0) {
               await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).then(result =>
-                res.status(200).json({notes: result})
+                res.status(200).send(result)
               ).catch(err => 
                 res.status(400).json({ msg: err })
               )
             } else {
               await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
-                res.status(200).json({notes: result})
+                res.status(200).send(result)
               ).catch(err => 
                 res.status(400).json({ msg: err })
               )
