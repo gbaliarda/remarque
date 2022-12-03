@@ -144,7 +144,11 @@ import { ObjectId } from 'mongoose';
  *         description: Note not found
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await connectMongo().catch(e => res.status(500).json({ e }))
+  try {
+    await connectMongo()
+  } catch (e) {
+    return res.status(500).json({ e })
+  }
   const { id } = req.query
 
   const session = await unstable_getServerSession(req, res, authOptions)

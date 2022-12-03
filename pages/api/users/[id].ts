@@ -67,7 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     switch(req.method) {
       case 'GET':
-        await connectMongo().catch(e => res.status(500).json({ e }))
+        try {
+          await connectMongo()
+        } catch (e) {
+          return res.status(500).json({ e })
+        }
         
         try {
           await User.findById(id).then(user => {
@@ -82,7 +86,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         break;
       case 'DELETE':
-        await connectMongo().catch(e => res.status(500).json({ e }))
+        try {
+          await connectMongo()
+        } catch (e) {
+          return res.status(500).json({ e })
+        }
         
         try {
           await Note.deleteMany({ owner: sessionUser.email }, err => {

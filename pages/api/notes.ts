@@ -62,7 +62,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ message: "You must be logged in." })
     }
 
-    await connectMongo().catch(e => res.status(500).json({ e }))
+    try {
+      await connectMongo()
+    } catch (e) {
+      return res.status(500).json({ e })
+    }
 
     try {
       const { title = "Untitled", content = [], isPublic = false } = req.body

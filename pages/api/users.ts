@@ -59,7 +59,11 @@ import User from '../../models/user'
  *         description: Email of user to retrieve
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  await connectMongo().catch(e => res.status(500).json({ e }))
+  try {
+    await connectMongo()
+  } catch (e) {
+    return res.status(500).json({ e })
+  }
 
   switch (req.method) {
     case 'GET':
