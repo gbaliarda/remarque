@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../models/note'
 import connectMongo from '../../utils/connectMongo'
-import { authOptions } from './auth/[...nextauth]'
-import { unstable_getServerSession } from "next-auth/next"
-import { parseAuthBasic } from './auth/[...nextauth]'
+import { getSessionUser } from '../../utils/getSessionUser'
 
 /**
  * @swagger
@@ -54,32 +52,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if(req.method !== 'POST')
     return res.status(405).end(`Method ${req.method} not allowed`)
 
-  const session = await unstable_getServerSession(req, res, authOptions)
+  const sessionUser = await getSessionUser(req, res)
+  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
 
-  if (!session) {
-    const sessionUser = await parseAuthBasic(req)
-    if (!sessionUser) {
-      return res.status(401).json({ message: "You must be logged in." })
-    }
+  try {
+    await connectMongo()
+  } catch (e) {
+    return res.status(500).json({ e })
+  }
 
-    try {
-      await connectMongo()
-    } catch (e) {
-      return res.status(500).json({ e })
-    }
+  try {
+    const { title = "Untitled", content = [], isPublic = false } = req.body
 
-    try {
-      const { title = "Untitled", content = [], isPublic = false } = req.body
-
-      await Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
-        sessionUser.notes = [...sessionUser.notes, note._id]
-        sessionUser.markModified('notes')
-        sessionUser.save()
-        res.status(201).json({ _id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified })
-      })
-    } catch (e) {
-      console.log(e)
-      res.status(400).json({ msg: "Note could not be created" , description: e })
-    }
+    await Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
+      sessionUser.notes = [...sessionUser.notes, note._id]
+      sessionUser.markModified('notes')
+      sessionUser.save()
+      res.status(201).json({ _id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified })
+    })
+  } catch (e) {
+    console.log(e)
+    res.status(400).json({ msg: "Note could not be created" , description: e })
   }
 }

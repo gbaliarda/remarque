@@ -2,9 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../../../models/note'
 import User from '../../../../models/user'
 import connectMongo from '../../../../utils/connectMongo'
-import { authOptions } from '../../auth/[...nextauth]'
-import { unstable_getServerSession } from "next-auth/next"
-import { parseAuthBasic } from '../../auth/[...nextauth]'
+import { getSessionUser } from '../../../../utils/getSessionUser'
 
 /**
  * @swagger
@@ -65,113 +63,107 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if(req.method !== 'GET')
     return res.status(405).end(`Method ${req.method} not allowed`)
 
-  const session = await unstable_getServerSession(req, res, authOptions)
+  const sessionUser = await getSessionUser(req, res)
+  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
 
-  if (!session) {
-    const sessionUser = await parseAuthBasic(req)
-    if (!sessionUser) {
-      return res.status(401).json({ msg: "You must be logged in." })
-    }
+  try {
+    await connectMongo()
+  } catch (e) {
+    return res.status(500).json({ e })
+  }
 
-    try {
-      await connectMongo()
-    } catch (e) {
-      return res.status(500).json({ e })
-    }
-  
-    try {
-      const { id, phrase, page = 0, limit = 0, lastModified } = req.query
-  
-      await User.findById(id).then(async user => {
-        
-        if(user == null)
-          return res.status(404).json({ msg: `User not found` })
+  try {
+    const { id, phrase, page = 0, limit = 0, lastModified } = req.query
 
-        if(phrase == undefined) {
-          const pageToNumber = Number(page), limitToNumber = Number(limit)
-          if(Number.isNaN(pageToNumber) || Number.isNaN(limitToNumber) || pageToNumber < 0 || limitToNumber < 0)
-            return res.status(400).json({msg: 'Bad Request, page or limit is not valid'})
+    await User.findById(id).then(async user => {
+      
+      if(user == null)
+        return res.status(404).json({ msg: `User not found` })
+
+      if(phrase == undefined) {
+        const pageToNumber = Number(page), limitToNumber = Number(limit)
+        if(Number.isNaN(pageToNumber) || Number.isNaN(limitToNumber) || pageToNumber < 0 || limitToNumber < 0)
+          return res.status(400).json({msg: 'Bad Request, page or limit is not valid'})
 
 
 
-          if(lastModified == undefined) {
+        if(lastModified == undefined) {
+          if(limitToNumber == 0) {
+            await Note.find({ owner: user.email }).then(result =>
+              res.status(200).json({notes: result})
+            ).catch(err => 
+              res.status(400).json({ msg: err })
+            )
+          } else {
+            await Note.find({ owner: user.email }).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
+              res.status(200).json({notes: result})
+            ).catch(err => 
+              res.status(400).json({ msg: err })
+            )
+          }
+        } else {
+          const lastModifiedToDate = new Date(Array.isArray(lastModified) ? lastModified[0]:lastModified)
+          if(Number.isNaN(lastModifiedToDate))
+            return res.status(400).json({msg: 'Bad Request, lastModified date is not valid'})
+          
             if(limitToNumber == 0) {
-              await Note.find({ owner: user.email }).then(result =>
+              await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).then(result =>
                 res.status(200).json({notes: result})
               ).catch(err => 
                 res.status(400).json({ msg: err })
               )
             } else {
-              await Note.find({ owner: user.email }).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
+              await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
                 res.status(200).json({notes: result})
               ).catch(err => 
                 res.status(400).json({ msg: err })
               )
             }
-          } else {
-            const lastModifiedToDate = new Date(Array.isArray(lastModified) ? lastModified[0]:lastModified)
-            if(Number.isNaN(lastModifiedToDate))
-              return res.status(400).json({msg: 'Bad Request, lastModified date is not valid'})
-            
-              if(limitToNumber == 0) {
-                await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).then(result =>
-                  res.status(200).json({notes: result})
-                ).catch(err => 
-                  res.status(400).json({ msg: err })
-                )
-              } else {
-                await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
-                  res.status(200).json({notes: result})
-                ).catch(err => 
-                  res.status(400).json({ msg: err })
-                )
-              }
-          }
-        } else {
-          const query = {
-            query: {
-              bool: {
-                must: [
-                  {
-                    multi_match: {
-                      query: phrase,
-                      fields: [
-                      "title^2",
-                      "content"
-                      ],
-                      type: "phrase"
-                    }
-                  },
-                  {
-                    match_phrase: {
-                      owner: user.email
-                    }
+        }
+      } else {
+        const query = {
+          query: {
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query: phrase,
+                    fields: [
+                    "title^2",
+                    "content"
+                    ],
+                    type: "phrase"
                   }
-                ]
-              }
-            },
-            highlight: {
-              fields: {
-                "title": {},
-                "content":{}
-              }
+                },
+                {
+                  match_phrase: {
+                    owner: user.email
+                  }
+                }
+              ]
+            }
+          },
+          highlight: {
+            fields: {
+              "title": {},
+              "content":{}
             }
           }
-
-          //Query via mongoosastic to elasticsearch
-          
-          try {
-            //@ts-ignore
-            const queryResult = await Note.esSearch(query)
-            res.status(200).json({msg: queryResult})
-          } catch (error) {
-            res.status(500).json({ msg: error })
-          }
         }
-      })
-    } catch (e) {
-      console.log(e)
-      res.status(400).json({ msg: e })
-    }
+
+        //Query via mongoosastic to elasticsearch
+        
+        try {
+          //@ts-ignore
+          const queryResult = await Note.esSearch(query)
+          res.status(200).json({msg: queryResult})
+        } catch (error) {
+          res.status(500).json({ msg: error })
+        }
+      }
+    })
+  } catch (e) {
+    console.log(e)
+    res.status(400).json({ msg: e })
   }
 }

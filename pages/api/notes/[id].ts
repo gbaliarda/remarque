@@ -1,11 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import Note from '../../../models/note';
 import connectMongo from '../../../utils/connectMongo';
-import { authOptions } from '../auth/[...nextauth]'
-import { unstable_getServerSession } from "next-auth/next"
-import { parseAuthBasic } from '../auth/[...nextauth]'
 import User from '../../../models/user';
 import { ObjectId } from 'mongoose';
+import { getSessionUser } from '../../../utils/getSessionUser';
 
 /**
  * @swagger
@@ -151,108 +149,102 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
   const { id } = req.query
 
-  const session = await unstable_getServerSession(req, res, authOptions)
+  const sessionUser = await getSessionUser(req, res)
+  if(!sessionUser) return res.status(401).json({ message: "You must be logged in." })
 
-  if (!session) {
-    const sessionUser = await parseAuthBasic(req)
-    if (!sessionUser) {
-      return res.status(401).json({ message: "You must be logged in." })
-    }
+  switch(req.method) {
+    case 'GET':
+      try {
+        await Note.findById(id).then(note => {
+          if(note == null)
+            return res.status(404).json({ msg: `Note not found` })
+          
+          if(!note.isPublic && note.owner !== sessionUser.email)
+            return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
 
-    switch(req.method) {
-      case 'GET':
-        try {
-          await Note.findById(id).then(note => {
-            if(note == null)
-              return res.status(404).json({ msg: `Note not found` })
-            
-            if(!note.isPublic && note.owner !== sessionUser.email)
-              return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
-  
-            res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+          res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+        })
+      } catch (e) {
+        console.log(e)
+        res.status(400).json({ msg: `Bad request`, description: e})
+      }
+      break;
+    case 'POST':
+      try {
+        await Note.findById(id).then(async note => {
+          if(note == null)
+            return res.status(404).json({ msg: `Note not found` })
+
+          if(!note.isPublic && note.owner !== sessionUser.email)
+            return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
+
+          await Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
+            sessionUser.notes = [...sessionUser.notes, note._id]
+            sessionUser.markModified('notes')
+            sessionUser.save()
+            res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
           })
-        } catch (e) {
-          console.log(e)
-          res.status(400).json({ msg: `Bad request`, description: e})
-        }
-        break;
-      case 'POST':
-        try {
-          await Note.findById(id).then(async note => {
-            if(note == null)
-              return res.status(404).json({ msg: `Note not found` })
-  
-            if(!note.isPublic && note.owner !== sessionUser.email)
-              return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
+        })
+      } catch (e) {
+        console.log(e)
+        res.status(400).json({ msg: `Bad request`, description: e})
+      }
+      break;
+    case 'PATCH':
+      try {
+        const {title, content, isPublic} = req.body
+        await Note.findById(id).then(note => {
+          if(note == null)
+            return res.status(404).json({ msg: `Note not found` })
 
-            await Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
-              sessionUser.notes = [...sessionUser.notes, note._id]
-              sessionUser.markModified('notes')
-              sessionUser.save()
-              res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
-            })
-          })
-        } catch (e) {
-          console.log(e)
-          res.status(400).json({ msg: `Bad request`, description: e})
-        }
-        break;
-      case 'PATCH':
-        try {
-          const {title, content, isPublic} = req.body
-          await Note.findById(id).then(note => {
-            if(note == null)
-              return res.status(404).json({ msg: `Note not found` })
-  
-            if(note.owner !== sessionUser.email)
-              return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+          if(note.owner !== sessionUser.email)
+            return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
 
-            if(title) {
-              note.title = title
-              note.markModified('title')
-            }
-            if(content) {
-              note.content = content
-              note.markModified('content')
-            }
-            if(isPublic) {
-              note.isPublic = isPublic
-              note.markModified('isPublic')
-            }
-            note.lastModified = Date.now()
-            note.markModified('lastModified')
-            note.save()
-            res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
-          })
-        } catch (e) {
-          console.log(e)
-          res.status(400).json({ msg: `Bad request`, description: e})
-        }
-        break;
-      case 'DELETE':
-        try {
-          await Note.findById(id).then(async note => {
-            if(note == null)
-              return res.status(404).json({ msg: `Note not found` })
-  
-            if(note.owner !== sessionUser.email)
-              return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+          if(title) {
+            note.title = title
+            note.markModified('title')
+          }
+          if(content) {
+            note.content = content
+            note.markModified('content')
+          }
+          if(isPublic) {
+            note.isPublic = isPublic
+            note.markModified('isPublic')
+          }
+          note.lastModified = Date.now()
+          note.markModified('lastModified')
+          note.save()
+          res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
+        })
+      } catch (e) {
+        console.log(e)
+        res.status(400).json({ msg: `Bad request`, description: e})
+      }
+      break;
+    case 'DELETE':
+      try {
+        await Note.findById(id).then(async note => {
+          if(note == null)
+            return res.status(404).json({ msg: `Note not found` })
 
-            await User.findOne({email: note.owner}).then(user => {
-              user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))
-              user.markModified("notes")
-              user.save()
-            })
-            note.remove()
-            res.status(200).json({ msg: `Note deleted successfully`})
+          if(note.owner !== sessionUser.email)
+            return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
+
+          await User.findOne({email: note.owner}).then(user => {
+            user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))
+            user.markModified("notes")
+            user.save()
           })
-        } catch (e) {
-          console.log(e)
-          res.status(400).json({ msg: `Bad request`, description: e})
-        }
-        break;
-      default:
-        return res.status(405).json({ msg: `Method ${req.method} not allowed`})
-    }
+          note.remove()
+          res.status(200).json({ msg: `Note deleted successfully`})
+        })
+      } catch (e) {
+        console.log(e)
+        res.status(400).json({ msg: `Bad request`, description: e})
+      }
+      break;
+    default:
+      return res.status(405).json({ msg: `Method ${req.method} not allowed`})
   }
 }
