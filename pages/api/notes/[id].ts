@@ -210,7 +210,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             note.content = content
             note.markModified('content')
           }
-          if(isPublic) {
+          if(isPublic != undefined) {
             note.isPublic = isPublic
             note.markModified('isPublic')
           }
