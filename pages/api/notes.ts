@@ -15,7 +15,7 @@ import { parseAuthBasic } from './auth/[...nextauth]'
  *     tags:
  *       - Notes
  *     requestBody:
- *       required: true
+ *       required: false
  *       content:
  *         application/json:
  *           schema:
@@ -25,13 +25,13 @@ import { parseAuthBasic } from './auth/[...nextauth]'
  *                 type: string
  *                 description: Note's title
  *                 example: Remarque
- *                 required: true
+ *                 required: false
  *               content:
  *                 type: array
  *                 items:
  *                   type: string
  *                 description: Note's content
- *                 required: true
+ *                 required: false
  *                 example: ["# Hello", "Note description"]
  *               isPublic:
  *                 type: boolean
@@ -48,7 +48,7 @@ import { parseAuthBasic } from './auth/[...nextauth]'
  *       401:
  *         description: You must be logged in
  *       400:
- *         description: Bad request, title and content are required
+ *         description: Bad request.
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if(req.method !== 'POST')
@@ -65,9 +65,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await connectMongo().catch(e => res.status(500).json({ e }))
 
     try {
-      let { title, content, isPublic } = req.body
-      if(isPublic == undefined)
-        isPublic = false
+      const { title = "Untitled", content = [], isPublic = false } = req.body
+
       await Note.create({owner: sessionUser.email, title, content, isPublic}).then((note) => {
         sessionUser.notes = [...sessionUser.notes, note._id]
         sessionUser.markModified('notes')
@@ -76,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     } catch (e) {
       console.log(e)
-      res.status(400).json({ msg: "Note could not be created, both title and content are required " , description: e })
+      res.status(400).json({ msg: "Note could not be created" , description: e })
     }
   }
 }

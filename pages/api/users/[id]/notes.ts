@@ -28,6 +28,25 @@ import { parseAuthBasic } from '../../auth/[...nextauth]'
  *         schema:
  *           type: string
  *         description: Title and content string that notes have to match
+ *       - name: page
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: Number of page to retrieve starting from 0. If not specified page is 0.
+ *       - name: limit
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: integer
+ *         description: Amount of notes to retrieve. If not specified retrieves all notes.
+ *       - name: lastModified
+ *         in: query
+ *         required: false
+ *         schema:
+ *           type: string
+ *           format: date
+ *         description: Retrieves only notes modified after this date.
  *     responses:
  *       200:
  *         description: An array of notes
@@ -57,63 +76,94 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await connectMongo().catch(e => res.status(500).json({ e }))
   
     try {
-      const { id, phrase } = req.query 
+      const { id, phrase, page = 0, limit = 0, lastModified } = req.query
   
       await User.findById(id).then(async user => {
         
-        if(user == null) {
-          console.log(user)
+        if(user == null)
           return res.status(404).json({ msg: `User not found` })
-        }
 
-        if(phrase == null) {
-          await Note.find({ owner: user.email }).then(result =>
-            res.status(200).json({notes: result})
-          ).catch(err => 
-            res.status(500).json({ msg: err })
-          )
-        }
-        
-        const query = {
-          query: {
-            bool: {
-              must: [
-                {
-                  multi_match: {
-                    query: phrase,
-                    fields: [
-                     "title^2",
-                     "content"
-                    ],
-                    type: "phrase"
-                  }
-                },
-                {
-                  match_phrase: {
-                    owner: user.email
-                  }
-                }
-              ]
+        if(phrase == undefined) {
+          const pageToNumber = Number(page), limitToNumber = Number(limit)
+          if(Number.isNaN(pageToNumber) || Number.isNaN(limitToNumber) || pageToNumber < 0 || limitToNumber < 0)
+            return res.status(400).json({msg: 'Bad Request, page or limit is not valid'})
+
+
+
+          if(lastModified == undefined) {
+            if(limitToNumber == 0) {
+              await Note.find({ owner: user.email }).then(result =>
+                res.status(200).json({notes: result})
+              ).catch(err => 
+                res.status(400).json({ msg: err })
+              )
+            } else {
+              await Note.find({ owner: user.email }).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
+                res.status(200).json({notes: result})
+              ).catch(err => 
+                res.status(400).json({ msg: err })
+              )
             }
-          },
-          highlight: {
-            fields: {
-              "title": {},
-              "content":{}
+          } else {
+            const lastModifiedToDate = new Date(Array.isArray(lastModified) ? lastModified[0]:lastModified)
+            if(Number.isNaN(lastModifiedToDate))
+              return res.status(400).json({msg: 'Bad Request, lastModified date is not valid'})
+            
+              if(limitToNumber == 0) {
+                await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).then(result =>
+                  res.status(200).json({notes: result})
+                ).catch(err => 
+                  res.status(400).json({ msg: err })
+                )
+              } else {
+                await Note.find({ owner: user.email, lastModified: { $gte: lastModifiedToDate} }).sort({lastModified: 1}).skip(pageToNumber * limitToNumber).limit(limitToNumber).then(result =>
+                  res.status(200).json({notes: result})
+                ).catch(err => 
+                  res.status(400).json({ msg: err })
+                )
+              }
+          }
+        } else {
+          const query = {
+            query: {
+              bool: {
+                must: [
+                  {
+                    multi_match: {
+                      query: phrase,
+                      fields: [
+                      "title^2",
+                      "content"
+                      ],
+                      type: "phrase"
+                    }
+                  },
+                  {
+                    match_phrase: {
+                      owner: user.email
+                    }
+                  }
+                ]
+              }
+            },
+            highlight: {
+              fields: {
+                "title": {},
+                "content":{}
+              }
             }
           }
-        }
 
-        //Query via mongoosastic to elasticsearch
-        
-        try {
-          //@ts-ignore
-          const queryResult = await Note.esSearch(query)
-          res.status(200).json({msg: queryResult})
-        } catch (error) {
-          res.status(500).json({ msg: error })
+          //Query via mongoosastic to elasticsearch
+          
+          try {
+            //@ts-ignore
+            const queryResult = await Note.esSearch(query)
+            res.status(200).json({msg: queryResult})
+          } catch (error) {
+            res.status(500).json({ msg: error })
+          }
         }
-
       })
     } catch (e) {
       console.log(e)

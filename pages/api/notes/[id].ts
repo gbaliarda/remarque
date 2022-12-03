@@ -80,13 +80,13 @@ import { ObjectId } from 'mongoose';
  *                 type: string
  *                 description: Note's title
  *                 example: Remarque
- *                 required: true
+ *                 required: false
  *               content:
  *                 type: array
  *                 items:
  *                   type: string
  *                 description: Note's content
- *                 required: true
+ *                 required: false
  *                 example: ["# Hello", "Note description"]
  *               isPublic:
  *                 type: boolean
@@ -174,14 +174,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
       case 'POST':
         try {
-          await Note.findById(id).then(note => {
+          await Note.findById(id).then(async note => {
             if(note == null)
               return res.status(404).json({ msg: `Note not found` })
   
             if(!note.isPublic && note.owner !== sessionUser.email)
               return res.status(403).json({ msg: `Note is not public for ${sessionUser.email}`})
 
-            Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
+            await Note.create({owner: sessionUser.email, title: note.title, content: note.content}).then((note) => {
               sessionUser.notes = [...sessionUser.notes, note._id]
               sessionUser.markModified('notes')
               sessionUser.save()
@@ -215,7 +215,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               note.isPublic = isPublic
               note.markModified('isPublic')
             }
-            note.lastModified = Date.now
+            note.lastModified = Date.now()
             note.markModified('lastModified')
             note.save()
             res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
@@ -227,14 +227,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
       case 'DELETE':
         try {
-          await Note.findById(id).then(note => {
+          await Note.findById(id).then(async note => {
             if(note == null)
               return res.status(404).json({ msg: `Note not found` })
   
             if(note.owner !== sessionUser.email)
               return res.status(403).json({ msg: `Note is not owned by ${sessionUser.email}`})
 
-            User.findOne({email: note.owner}).then(user => {
+            await User.findOne({email: note.owner}).then(user => {
               user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))
               user.markModified("notes")
               user.save()

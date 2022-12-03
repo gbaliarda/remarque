@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await connectMongo().catch(e => res.status(500).json({ e }))
         
         try {
-          Note.deleteMany({ owner: sessionUser.email }, err => {
+          await Note.deleteMany({ owner: sessionUser.email }, err => {
             if (err)
               return res.status(500).json({ msg: err })
           })
