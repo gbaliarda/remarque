@@ -64,7 +64,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { title = "Untitled", content = [], isPublic = false } = req.body
-
     await User.findOne({email: sessionEmail}).then(async user => {
       await Note.create({owner: user.email, title, content, isPublic}).then((note) => {
         user.notes = [...user.notes, note._id]
