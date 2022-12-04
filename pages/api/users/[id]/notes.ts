@@ -163,7 +163,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 owner: hit._source.owner,
                 title: hit._source.title,
                 content: hit._source.content,
-                hightlight: hit.highlight
+                highlight: hit.highlight
               }
               result = [...result, object]
             })
