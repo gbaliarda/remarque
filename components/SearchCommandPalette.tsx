@@ -45,6 +45,13 @@ export default function SearchCommandPalette() {
       search={search}
       isOpen={isOpen}
     >
+      {hits.length === 0 && 
+        <CommandPalette.List>
+          <CommandPalette.ListItem index={0} showType={false}>
+            <p style={{ color: "#666" }}>No results.</p>
+          </CommandPalette.ListItem>
+        </CommandPalette.List>
+      }
       {hits.map(({ _id, highlight, title }) =>
         <CommandPalette.List key={_id} heading={title}>
           {(highlight.title?.map((text, index) => (
