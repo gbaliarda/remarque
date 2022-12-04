@@ -9,6 +9,7 @@ import { createNote } from '../services/notes'
 import { useRouter } from 'next/router'
 import { apiFetcher } from '../services/setup';
 import { Note, User } from '../services/types'
+import { getRelativeDays } from '../utils/parseDate';
 
 interface Props {
   user: User | null
@@ -31,6 +32,9 @@ export default function Home({ user, notes }: Props) {
     <div className={s.login}>
       <p>Not signed in</p>
       <button className={s.button} onClick={() => signIn()}>Sign in</button>
+      <Link passHref href="/register">
+        <a>Don&apos;t have an account? <span style={{ color: "blueviolet" }}>Register</span></a>
+      </Link>
     </div>
   )
 
@@ -44,9 +48,12 @@ export default function Home({ user, notes }: Props) {
         <h1>My Notes</h1>
         <div className={s.notes}>
           {notes.map(note => (
-            <Link key={note._id} passHref href={`/notes/${note._id}`}>
-              <a className={s.note}>{note.title}</a>
-            </Link>
+            <div key={note._id} className={s.note}>
+              <Link passHref href={`/notes/${note._id}`}>
+                <a>{note.title}</a>
+              </Link>
+              <span>{getRelativeDays(note.lastModified)}</span>
+            </div>
           ))}
         </div>
         <button onClick={handleCreate} className={s.create}>+ New</button>
@@ -66,16 +73,27 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
 
   const userEmail = session.user!!.email!!
   // If an error is thrown inside getServerSideProps, it will show the pages/500.js file. Check out the documentation for 500 page to learn more on how to create it. During development this file will not be used and the dev overlay will be shown instead.
-  const user = await apiFetcher<User>(`/api/users?email=${userEmail}`)
-  user.email = userEmail
-  // https://github.com/nextauthjs/next-auth/issues/4238#issuecomment-1251750371
-  const notes = await apiFetcher<Note[]>(`/api/users/${user._id}/notes`, {
-    // @ts-ignore
-    headers: {
-      Cookie: context.req.headers.cookie
+  try {
+    const user = await apiFetcher<User>(`/api/users?email=${userEmail}`)
+    user.email = userEmail
+    // https://github.com/nextauthjs/next-auth/issues/4238#issuecomment-1251750371
+    const notes = await apiFetcher<Note[]>(`/api/users/${user._id}/notes`, {
+      // @ts-ignore
+      headers: {
+        Cookie: context.req.headers.cookie
+      }
+    })
+    return {
+      props: { user, notes }
     }
-  })
-  return {
-    props: { user, notes }
+  } catch(e: any) {
+    console.log(e)
+    return {
+      redirect: {
+        destination: '/register',
+        permanent: false,
+      },
+    }
   }
+
 }

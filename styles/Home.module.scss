@@ -43,13 +43,24 @@
   margin-inline: auto;
 
   .note {
-    display: block;
+    display: flex;
+    justify-content: space-between;
     border-bottom: 1px solid #ccc;
     padding-bottom: .5rem;
     margin-bottom: .5rem;
+
+    a {
+      display: inline-block;
+      width: 70%;
+    }
     
-    &:hover {
+    &:hover a {
       color: $link-color;
+    }
+
+    span {
+      font-size: .9rem;
+      color: #555;
     }
   }
 
