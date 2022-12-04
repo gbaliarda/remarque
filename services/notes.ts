@@ -1,5 +1,5 @@
 import { postJsonApi, patchJsonApi, apiFetcher } from './setup';
-import { Note } from "./types"
+import { Note, IndexedNote } from './types';
 
 export const createNote = () => {
   return postJsonApi<Note>("/api/notes", {})
@@ -19,4 +19,8 @@ export const shareNote = (id: string, share: boolean) => {
 
 export const duplicateNote = (id: string) => {
   return postJsonApi<Note>(`/api/notes/${id}`, {})
+}
+
+export const searchPhraseInNotes = (userId: string, phrase: string) => {
+  return apiFetcher<IndexedNote[]>(`/api/users/${userId}/notes?phrase=${phrase}`)
 }
