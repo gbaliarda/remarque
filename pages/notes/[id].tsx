@@ -56,8 +56,9 @@ export default function EditorPage({ user, note }: Props) {
 
   const handleDuplicate = async () => {
     try {
-      await duplicateNote(note._id)
-      Swal.fire({ title: `Note duplicated`, icon: "success" })
+      const newNote = await duplicateNote(note._id)
+      await Swal.fire({ title: `Note duplicated`, icon: "success" })
+      router.replace(`/notes/${newNote._id}`)
     } catch(e: any) {
       Swal.fire({ title: `Error duplicating note`, text: e, icon: "error" })
     }
