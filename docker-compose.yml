@@ -19,10 +19,14 @@ services:
         published: 5601
     depends_on:
       - elasticsearch
+
   mongo:
     image: mongo
+    volumes:
+      - mongo-data:/data/db
     ports:
       - 27017:27017
 
 volumes:
   es-data:
+  mongo-data:
