@@ -64,8 +64,10 @@ export const getServerSideProps: GetServerSideProps<Props> = async (context) => 
     }
   }
 
+  const userEmail = session.user!!.email!!
   // If an error is thrown inside getServerSideProps, it will show the pages/500.js file. Check out the documentation for 500 page to learn more on how to create it. During development this file will not be used and the dev overlay will be shown instead.
-  const user = await apiFetcher<User>(`/api/users?email=${session.user!!.email}`)
+  const user = await apiFetcher<User>(`/api/users?email=${userEmail}`)
+  user.email = userEmail
   // https://github.com/nextauthjs/next-auth/issues/4238#issuecomment-1251750371
   const notes = await apiFetcher<Note[]>(`/api/users/${user._id}/notes`, {
     // @ts-ignore

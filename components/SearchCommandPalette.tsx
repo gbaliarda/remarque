@@ -9,12 +9,12 @@ import { useSession } from 'next-auth/react'
 import { useHandleOpenCommandPalette } from 'react-cmdk/dist/lib/utils'
 import { IndexedNote } from '../services/types'
 import { searchPhraseInNotes } from '../services/notes'
-import { useUser } from '../services/auth'
+import { useUserId } from '../services/auth'
 
 export default function SearchCommandPalette() {
   const router = useRouter()
   const { data: session } = useSession()
-  const { data: user } = useUser(session?.user?.email)
+  const { id: userId } = useUserId(session?.user?.email)
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [hits, setHits] = useState<IndexedNote[]>([])
@@ -28,15 +28,15 @@ export default function SearchCommandPalette() {
 
   const getSearchHits = useCallback(debounce(async (phrase: string) => {
     try {
-      const notes = await searchPhraseInNotes(user!!._id, phrase)
+      const notes = await searchPhraseInNotes(userId!!, phrase)
       setHits(notes)
     } catch(e: any) {
       console.log(e)
       Swal.fire({ title: "Error fetching notes", text: e, icon: "error" })
     }
-  }, 500), [user])
+  }, 500), [userId])
 
-  if (!user) return null
+  if (!userId) return null
 
   return (
     <CommandPalette

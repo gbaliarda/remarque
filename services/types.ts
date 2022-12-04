@@ -19,5 +19,4 @@ export interface IndexedNote {
 export interface User {
 	_id: string
 	email: string
-	notes: string[]
 }
