@@ -10,9 +10,9 @@ From the terminal and located in the root of the project:
 
 > Note that you will need `docker` and `npm` installed on your computer.
 
-This will start the user interface in http://localhost:3000.
+This will start the user interface at http://localhost:3000.
 
-You can access the **Swagger** docs in http://localhost:3000/doc.
+You can access the **Swagger** docs at http://localhost:3000/doc.
 
 ## Frontend Features
 
@@ -22,7 +22,7 @@ You can access the **Swagger** docs in http://localhost:3000/doc.
 - Share your public note ID with anyone to allow them to see/duplicate your note.
 - Notes are automatically ordered by modification date.
 
-## Keyboard shortcuts
+### Keyboard shortcuts
 - Shift + Enter to insert a new block.
 - Shift + Backspace to remove the current block.
 - Tab to go to the next block.
