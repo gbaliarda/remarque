@@ -179,10 +179,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(403).json({ msg: `Note is not public for ${sessionEmail}`})
 
           await User.findOne({email: sessionEmail}).then(async user => {
-            await Note.create({owner: user.email, title: note.title, content: note.content}).then((note) => {
+            await Note.create({owner: user.email, title: note.title, content: note.content}).then(async (note) => {
               user.notes = [...user.notes, note._id]
               user.markModified('notes')
-              user.save()
+              await user.save()
               res.status(201).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
             })
           })
@@ -195,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'PATCH':
       try {
         const {title, content, isPublic} = req.body
-        await Note.findById(id).then(note => {
+        await Note.findById(id).then(async note => {
           if(note == null)
             return res.status(404).json({ msg: `Note not found` })
 
@@ -216,7 +216,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
           note.lastModified = Date.now()
           note.markModified('lastModified')
-          note.save()
+          await note.save({validateBeforeSave: true})
           res.status(200).json({_id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified})
         })
       } catch (e) {
@@ -233,13 +233,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if(note.owner !== sessionEmail)
             return res.status(403).json({ msg: `Note is not owned by ${sessionEmail}`})
 
-          await User.findOne({email: note.owner}).then(user => {
+          await User.findOne({email: note.owner}).then(async user => {
             user.notes = user.notes.filter((userNote: ObjectId) => String(userNote) != String(note._id))
             user.markModified("notes")
-            user.save()
+            await user.save()
           })
           // @ts-ignore
-          note.remove(function(err) {
+          await note.remove(function(err) {
             if(err)
               console.log(err)
           })
