@@ -23,7 +23,7 @@ You can access the **Swagger** docs at http://localhost:3000/doc.
 - Notes are automatically ordered by modification date.
 
 ### Keyboard shortcuts
-- Shift + Enter to insert a new block.
-- Shift + Backspace to remove the current block.
-- Tab to go to the next block.
-- Shift + Tab to go to the previous block.
+- `Shift+Enter` to insert a new block.
+- `Shift+Backspace` to remove the current block.
+- `Tab` to go to the next block.
+- `Shift+Tab` to go to the previous block.
