@@ -20,9 +20,14 @@
       a {
         opacity: .65;
       }
-  
-      h1 {
-        font-size: 1.2rem;
+
+      input {
+        font-size: 1.3rem;
+        font-weight: bold;
+        border: none;
+        outline: none;
+        padding: 0;
+        padding-top: .2rem;
       }
     }
 
@@ -36,17 +41,22 @@
         cursor: pointer;
       }
 
-      .edit {
+      .icon {
         border-radius: 50%;
         padding: .5rem;
         width: 40px;
         height: 40px;
+      }
+      
+      .inactive {
+        color: $primary-color;
+        background: none;
+        border: 1px solid $primary-color;
+      }
 
-        &.notEditing {
-          color: $primary-color;
-          background: none;
-          border: 1px solid $primary-color;
-        }
+      .delete {
+        color: tomato;
+        background: none;
       }
     }
   }

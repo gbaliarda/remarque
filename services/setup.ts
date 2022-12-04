@@ -18,3 +18,12 @@ export const postJsonApi = <T>(resource: string, body: Object) =>
     },
     body: JSON.stringify(body),
   })
+
+export const patchJsonApi = <T>(resource: string, body: Object) =>
+  apiFetcher<T>(resource, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body),
+  })

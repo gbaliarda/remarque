@@ -1,4 +1,4 @@
-import { ChangeEvent, KeyboardEvent, useState } from 'react'
+import { ChangeEvent, KeyboardEvent, Dispatch, SetStateAction } from 'react'
 import ReactMarkdown from 'react-markdown'
 // @ts-ignore
 import SyntaxHighlighter from 'react-syntax-highlighter'
@@ -14,29 +14,34 @@ import remarkBreaks from 'remark-breaks'
 import 'katex/dist/katex.min.css'
 import s from "./Editor.module.scss"
 
-const INITIAL_CONTENT = [
-  "# Probando el titulo de la nota",
-  "Un parrafo tranqui con `inline code`",
-  "- Un bullet",
-  "Un poquito de codigo",
-  '```typescript\nconsole.log("Hello world")\ndb.find({ id: 1 })\nconst printName = (name: string) => {} \n ```',
-  "![Redis](https://1000marcas.net/wp-content/uploads/2021/06/Redis-Logo.png)",
-  "The lift coefficient ($C_L$) is a dimensionless coefficient.",
-  "$$\nL = \\frac{1}{2} \\rho v^2 S C_L\n$$",
-  `A paragraph with *emphasis* and **strong importance**.\n> A block quote with ~strikethrough~ and a URL: https://reactjs.org.\n
-  * Tareas
-  * [ ] todo
-  * [x] done\n
-  | Command | Description |
-  | ---------- | ------------ |
-  | git status | List all new or modified files |
-  | git diff   | Show file differences that haven't been staged |
-  `,
-  "[React Website](https://reactjs.org/)"
-]
+// const TEST_CONTENT = [
+//   "# Probando el titulo de la nota",
+//   "Un parrafo tranqui con `inline code`",
+//   "- Un bullet",
+//   "Un poquito de codigo",
+//   '```typescript\nconsole.log("Hello world")\ndb.find({ id: 1 })\nconst printName = (name: string) => {} \n ```',
+//   "![Redis](https://1000marcas.net/wp-content/uploads/2021/06/Redis-Logo.png)",
+//   "The lift coefficient ($C_L$) is a dimensionless coefficient.",
+//   "$$\nL = \\frac{1}{2} \\rho v^2 S C_L\n$$",
+//   `A paragraph with *emphasis* and **strong importance**.\n> A block quote with ~strikethrough~ and a URL: https://reactjs.org.\n
+//   * Tareas
+//   * [ ] todo
+//   * [x] done\n
+//   | Command | Description |
+//   | ---------- | ------------ |
+//   | git status | List all new or modified files |
+//   | git diff   | Show file differences that haven't been staged |
+//   `,
+//   "[React Website](https://reactjs.org/)"
+// ]
 
-export default function Editor({ editing }: { editing: boolean }) {
-  const [content, setContent] = useState(INITIAL_CONTENT)
+interface Props {
+  editing: boolean
+  content: string[]
+  setContent: Dispatch<SetStateAction<string[]>>
+}
+
+export default function Editor({ editing, content, setContent }: Props) {
 
   const handleBlockInput = (e: ChangeEvent<HTMLTextAreaElement>, index: number) => {
     setContent(oldContent => {
@@ -81,10 +86,10 @@ export default function Editor({ editing }: { editing: boolean }) {
       { editing &&
         <div className={s.blocks}>
           {content.map((block, index) => (
-            // FIXME: using index as key is not recommenden, since we are constantly reordering / deleting / adding new blocks in between
+            // FIXME: using index as key is not recommended, since we are constantly reordering / deleting / adding new blocks in between
             <div key={index} className={s.block}>
               <button onClick={() => addBlock(index)}>+</button>
-              <Textarea value={block} onKeyDown={(e) => handleKeyDown(e, index)} onChange={(e) => handleBlockInput(e, index)} />
+              <Textarea placeholder={content.length === 1 ? "Type something..." : ""} value={block} onKeyDown={(e) => handleKeyDown(e, index)} onChange={(e) => handleBlockInput(e, index)} />
               <span className={s.lineNum}>{index}</span>
             </div>
           ))}
