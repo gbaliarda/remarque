@@ -65,10 +65,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { title = "Untitled", content = [], isPublic = false } = req.body
     await User.findOne({email: sessionEmail}).then(async user => {
-      await Note.create({owner: user.email, title, content, isPublic}).then((note) => {
+      await Note.create({owner: user.email, title, content, isPublic}).then(async (note) => {
         user.notes = [...user.notes, note._id]
         user.markModified('notes')
-        user.save()
+        await user.save()
         return res.status(201).json({ _id: note._id, owner: note.owner, title: note.title, content: note.content, isPublic: note.isPublic, lastModified: note.lastModified })
       })
     })
