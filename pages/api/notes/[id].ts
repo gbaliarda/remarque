@@ -238,7 +238,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             user.markModified("notes")
             user.save()
           })
-          note.remove()
+          // @ts-ignore
+          note.remove(function(err) {
+            if(err)
+              console.log(err)
+          })
           res.status(200).json({ msg: `Note deleted successfully`})
         })
       } catch (e) {

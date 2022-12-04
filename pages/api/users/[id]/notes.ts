@@ -155,10 +155,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         try {
           //@ts-ignore
-          const queryResult = await Note.esSearch(query)
-          res.status(200).json({msg: queryResult})
+          await Note.esSearch(query).then(queryRes => {
+            let result: any = []
+            queryRes.hits.hits.forEach((hit: any) => {
+              const object = {
+                _id: hit._id,
+                owner: hit._source.owner,
+                title: hit._source.title,
+                content: hit._source.content,
+                hightlight: hit.highlight
+              }
+              result = [...result, object]
+            })
+            return res.status(200).send(result)
+          })
         } catch (error) {
-          res.status(500).json({ msg: error })
+          // @ts-ignore
+          if(error.status && error.status === 404)
+            res.status(404).json({msg: "Index not found, there are no notes to look for"})
+          else
+            res.status(500).json({ msg: error })
         }
       }
     })
