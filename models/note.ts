@@ -24,7 +24,8 @@ const noteSchema = new Schema({
   },
   lastModified: {
     type: Date,
-    default: Date.now
+    default: Date.now,
+    index: true
   }
 })
 
