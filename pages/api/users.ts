@@ -46,11 +46,11 @@ import User from '../../models/user'
  *       - Users
  *     responses:
  *       200:
- *         description: A single user
+ *         description: A single user ID
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/ObjectId'
  *       400:
  *         description: Bad request. Check email parameter
  *     parameters: 
@@ -72,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'GET':
       try {
         const { email } = req.query
-        await User.findOne({ email }).then(user => res.status(200).json({ _id: user._id, email: user.email, notes: user.notes}))
+        await User.findOne({ email }).then(user => res.status(200).json({ _id: user._id}))
       } catch (e) {
         console.log(e)
         res.status(400).json({ msg: e })
