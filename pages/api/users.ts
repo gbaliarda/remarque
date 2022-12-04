@@ -53,6 +53,8 @@ import User from '../../models/user'
  *               $ref: '#/components/schemas/ObjectId'
  *       400:
  *         description: Bad request. Check email parameter
+ *       404:
+ *         description: There is no user with that email
  *     parameters: 
  *       - name: email
  *         in: query
@@ -72,7 +74,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'GET':
       try {
         const { email } = req.query
-        await User.findOne({ email }).then(user => res.status(200).json({ _id: user._id}))
+        await User.findOne({ email }).then(user => {
+          if(user)
+            return res.status(200).json({ _id: user._id})
+          return res.status(404).json({msg: "There is no user with that email"})
+        })
       } catch (e) {
         console.log(e)
         res.status(400).json({ msg: e })
@@ -81,10 +87,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'POST':
       try {
         const { email, password } = req.body
+        if(email == undefined || password == undefined)
+          return res.status(400).json({msg: "Email and password are both required"})
+
         const hashedPassword = await bcrypt.hash(password, 12)
         await User.create({ email, password: hashedPassword })
                 .then((user) => res.status(201).json({ _id: user._id, email: user.email, notes: user.notes}))
-                .catch(() => res.status(409).json({ msg: "User already exists or has invalid email or password" }))
+                .catch(() => res.status(409).json({ msg: "User already exists" }))
       } catch (e) {
         res.status(400).json({ msg: "User could not be created, both email and password are required and have to be valid", error: e })
       }
