@@ -35,7 +35,7 @@ import User from '../../models/user'
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/ObjectId'
  *       400:
  *         description: Bad request. Check email and password parameters
  *       409:
@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const hashedPassword = await bcrypt.hash(password, 12)
         await User.create({ email, password: hashedPassword })
-                .then((user) => res.status(201).json({ _id: user._id, email: user.email, notes: user.notes}))
+                .then((user) => res.status(201).json({ _id: user._id}))
                 .catch(() => res.status(409).json({ msg: "User already exists" }))
       } catch (e) {
         res.status(400).json({ msg: "User could not be created, both email and password are required and have to be valid", error: e })
