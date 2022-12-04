@@ -4,6 +4,7 @@ import connectMongo from '../../../utils/connectMongo';
 import User from '../../../models/user';
 import { ObjectId } from 'mongoose';
 import { getSessionEmail } from '../../../utils/getSessionEmail';
+import { isValidContent } from '../../../utils/isValidContent';
 
 /**
  * @swagger
@@ -195,6 +196,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'PATCH':
       try {
         const {title, content, isPublic} = req.body
+        if (!isValidContent(content))
+          return res.status(400).json({ msg: `Content is not valid.`})
+
         await Note.findById(id).then(async note => {
           if(note == null)
             return res.status(404).json({ msg: `Note not found` })
