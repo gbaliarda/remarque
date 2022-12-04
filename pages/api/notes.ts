@@ -3,6 +3,7 @@ import Note from '../../models/note'
 import User from '../../models/user'
 import connectMongo from '../../utils/connectMongo'
 import { getSessionEmail } from '../../utils/getSessionEmail'
+import { isValidContent } from '../../utils/isValidContent'
 
 /**
  * @swagger
@@ -64,6 +65,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const { title = "Untitled", content = [], isPublic = false } = req.body
+    if (!isValidContent(content))
+      return res.status(400).json({ msg: `Content is not valid.`})
     await User.findOne({email: sessionEmail}).then(async user => {
       await Note.create({owner: user.email, title, content, isPublic}).then(async (note) => {
         user.notes = [...user.notes, note._id]
