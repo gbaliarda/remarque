@@ -1,5 +1,4 @@
 import useSWR from 'swr'
-import { User } from './types'
 import { postJsonApi, apiFetcher } from './setup';
 
 export const registerUser = (email: string, password: string) => {
