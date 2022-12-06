@@ -196,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'PATCH':
       try {
         const {title, content, isPublic} = req.body
-        if (!isValidContent(content))
+        if (content && !isValidContent(content))
           return res.status(400).json({ msg: `Content is not valid.`})
 
         await Note.findById(id).then(async note => {
