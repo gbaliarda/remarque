@@ -132,7 +132,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     "title^2",
                     "content"
                     ],
-                    type: "phrase"
+                    fuzziness: "AUTO",
+                    operator: "and"
                   }
                 },
                 {
