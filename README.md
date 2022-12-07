@@ -1,6 +1,6 @@
 Remarque notes app.
 
-# Running the app in development
+# Running the app locally in development
 
 From the terminal and located in the root of the project:
 1. Run `docker compose up`.
@@ -13,6 +13,10 @@ From the terminal and located in the root of the project:
 This will start the user interface at http://localhost:3000.
 
 You can access the **Swagger** docs at http://localhost:3000/doc.
+
+## Running the app from Github Codespaces
+
+For the app to work properly, environment variables in `.env.local` must be edited to match the remote hostname and ports.
 
 ## Frontend Features
 

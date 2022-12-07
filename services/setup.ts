@@ -1,4 +1,4 @@
-export const apiEndpoint = "http://localhost:3000"
+export const apiEndpoint = process.env.NEXT_PUBLIC_BASE_URL
 
 const checkStatus = async (res: Response) => {
   if (!res.ok) throw new Error(res.statusText)
