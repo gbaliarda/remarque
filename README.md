@@ -14,11 +14,11 @@ This will start the user interface at http://localhost:3000.
 
 You can access the **Swagger** docs at http://localhost:3000/doc.
 
-## Running the app from Github Codespaces
+# Running the app from Github Codespaces
 
 For the app to work properly, environment variables in `.env.local` must be edited to match the remote hostname and ports.
 
-## Frontend Features
+# Frontend Features
 
 - Katex math expressions.
 - Github markdown syntax support.
@@ -26,7 +26,7 @@ For the app to work properly, environment variables in `.env.local` must be edit
 - Share your public note ID with anyone to allow them to see/duplicate your note.
 - Notes are automatically ordered by modification date.
 
-### Keyboard shortcuts
+## Keyboard shortcuts
 - `Shift+Enter` to insert a new block.
 - `Shift+Backspace` to remove the current block.
 - `Tab` to go to the next block.
