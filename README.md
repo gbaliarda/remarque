@@ -16,7 +16,8 @@ You can access the **Swagger** docs at http://localhost:3000/doc.
 
 # Running the app from Github Codespaces
 
-For the app to work properly, environment variable `NEXT_PUBLIC_BASE_URL` in `.env.local` must be edited to match the codespace preview link (e.g. `https://eperezok-cautious-dollop-v7qgg9xpr5hxjxg-3000.preview.app.github.dev/`), and PORT 3000's visibility must be set to `Public` in the Codespace port configuration.
+- Edit environment variable `NEXT_PUBLIC_BASE_URL` in `.env.local` to match the codespace preview link (e.g. `https://eperezok-cautious-dollop-v7qgg9xpr5hxjxg-3000.preview.app.github.dev/`).
+- Set port 3000 visibility to `Public` from the Codespace port configuration.
 
 # Frontend Features
 
