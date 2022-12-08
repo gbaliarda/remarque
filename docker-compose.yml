@@ -4,7 +4,8 @@ services:
     image: elasticsearch:8.5.2
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      # edit memory usage, currently 128Mb (use 1g to set it to 1Gb)
+      - ES_JAVA_OPTS=-Xms128m -Xmx128m
       - xpack.security.enabled=false
     volumes:
       - es-data:/usr/share/elasticsearch/data
