@@ -19,6 +19,10 @@ You can access the **Swagger** docs at http://localhost:3000/doc.
 - Edit environment variable `NEXT_PUBLIC_BASE_URL` in `.env.local` to match the codespace preview link (e.g. `https://eperezok-cautious-dollop-v7qgg9xpr5hxjxg-3000.preview.app.github.dev/`).
 - Set port 3000 visibility to `Public` from the Codespace port configuration.
 
+# Accessing MongoDB
+
+
+
 # Frontend Features
 
 - Katex math expressions.
